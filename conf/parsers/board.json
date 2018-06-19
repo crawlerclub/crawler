@@ -1,0 +1,25 @@
+{
+  "name": "board",
+  "example_url": "http://www.newsmth.net/nForum/board/Universal",
+  "default_fields": true,
+  "rules": {
+    "root": [
+      {
+        "type": "url",
+        "key": "article",
+        "xpath": "//tr[not(contains(@class, 'top ad'))]/td[2]/a"
+      },
+      {
+        "type": "url",
+        "key": "board",
+        "xpath": "//div[@class='t-pre']//li[@class='page-select']/following-sibling::li[1]/a"
+      },
+      {
+        "type": "text",
+        "key": "time_",
+        "xpath": "//tr[not(contains(@class, 'top'))][1]/td[8]"
+      }
+    ]
+  },
+  "js": ""
+}
