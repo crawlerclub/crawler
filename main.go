@@ -22,6 +22,7 @@ import (
 var (
 	dir     = flag.String("dir", "data", "working dir")
 	timeout = flag.Int64("timeout", 300, "in seconds")
+	c       = flag.Int("c", 1, "worker count")
 )
 
 var crawlTopic, storeTopic *TaskTopic
@@ -63,9 +64,6 @@ func initSeeds() error {
 		return err
 	}
 	for _, seed := range seeds {
-		if check(seed) {
-			continue
-		}
 		b, _ := json.Marshal(seed)
 		glog.Info(string(b))
 		if err = crawlTopic.Push(string(b)); err != nil {
@@ -74,13 +72,6 @@ func initSeeds() error {
 		}
 	}
 	return nil
-}
-
-func check(task *et.UrlTask) bool {
-	if task == nil || task.Url == "" || task.ParserName == "" {
-		return true
-	}
-	return false
 }
 
 func stop(sigs chan os.Signal, exit chan bool) {
@@ -92,16 +83,13 @@ func stop(sigs chan os.Signal, exit chan bool) {
 func do(i int, exit chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 	glog.Infof("start worker %d", i)
-	num := 0
 	for {
 		select {
 		case <-exit:
 			glog.Infof("worker %d exit", i)
 			return
 		default:
-			num++
 			key, item, err := crawlTopic.Pop(*timeout)
-			glog.Infof("%d: err=%+v", num, err)
 			if err != nil {
 				if err.Error() == "Queue is empty" {
 					s := rand.Int()%20 + 5
@@ -117,6 +105,13 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 				glog.Error(err)
 				continue
 			}
+
+			var t time.Time
+			bt, err := urlStore.Get(task.Url)
+			if err == nil || err.Error() == "leveldb: not found" {
+				t, _ = time.Parse(time.RFC3339, string(bt))
+			}
+
 			resp := dl.DownloadUrlWithProxy(task.Url)
 			if resp.Error != nil {
 				glog.Error(resp.Error)
@@ -127,25 +122,37 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 				glog.Error(err)
 				continue
 			}
-			for _, t := range tasks {
-				if check(t) {
-					continue
-				}
 
-				b, _ := json.Marshal(t)
-				if err = crawlTopic.Push(string(b)); err != nil {
-					glog.Error(err)
-				}
-			}
+			t2 := time.Now()
 			for _, rec := range records {
 				b, _ := json.Marshal(rec)
 				glog.Info(string(b))
 				if err = storeTopic.Push(string(b)); err != nil {
 					glog.Error(err)
 				}
+
+				if rec["time_"] != nil {
+					switch rec["time_"].(type) {
+					case string:
+						t2, _ = time.Parse(time.RFC3339, rec["time_"].(string))
+					}
+				}
 			}
-			if err = crawlTopic.Confirm(key); err != nil {
-				glog.Error(err)
+
+			if t2.After(t) {
+				for _, t := range tasks {
+					b, _ := json.Marshal(t)
+					if err = crawlTopic.Push(string(b)); err != nil {
+						glog.Error(err)
+					}
+				}
+			}
+
+			if len(tasks) > 0 || len(records) > 0 {
+				if err = crawlTopic.Confirm(key); err != nil {
+					glog.Error(err)
+				}
+				urlStore.Put(task.Url, []byte(t2.UTC().Format(time.RFC3339)))
 			}
 		}
 	}
@@ -165,7 +172,7 @@ func main() {
 	go stop(sigs, exit)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 1; i++ {
+	for i := 0; i < *c; i++ {
 		wg.Add(1)
 		go do(i, exit, &wg)
 	}
