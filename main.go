@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -13,27 +15,72 @@ import (
 	"crawler.club/dl"
 	"crawler.club/et"
 	"github.com/golang/glog"
+	"github.com/liuzl/store"
 	"zliu.org/goutil"
 )
 
 var (
 	dir     = flag.String("dir", "data", "working dir")
-	timeout = flag.Int64("timeout", 30, "in seconds")
+	timeout = flag.Int64("timeout", 300, "in seconds")
 )
 
 var crawlTopic, storeTopic *TaskTopic
+var urlStore *store.LevelStore
 var once sync.Once
 
-func initTopics() {
+func initTopics() (err error) {
 	once.Do(func() {
-		var err error
 		if crawlTopic, err = NewTaskTopic("crawl", *dir); err != nil {
-			panic(err)
+			glog.Error(err)
+			return
 		}
 		if storeTopic, err = NewTaskTopic("store", *dir); err != nil {
-			panic(err)
+			glog.Error(err)
+			return
+		}
+		dbDir := filepath.Join(*dir, "url")
+		if urlStore, err = store.NewLevelStore(dbDir); err != nil {
+			glog.Error(err)
+			return
+		}
+		if err = initSeeds(); err != nil {
+			return
 		}
 	})
+	return
+}
+
+func initSeeds() error {
+	seedsFile := filepath.Join(*conf, "seeds.json")
+	content, err := ioutil.ReadFile(seedsFile)
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+	var seeds []*et.UrlTask
+	if err = json.Unmarshal(content, &seeds); err != nil {
+		glog.Error(err)
+		return err
+	}
+	for _, seed := range seeds {
+		if check(seed) {
+			continue
+		}
+		b, _ := json.Marshal(seed)
+		glog.Info(string(b))
+		if err = crawlTopic.Push(string(b)); err != nil {
+			glog.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func check(task *et.UrlTask) bool {
+	if task == nil || task.Url == "" || task.ParserName == "" {
+		return true
+	}
+	return false
 }
 
 func stop(sigs chan os.Signal, exit chan bool) {
@@ -45,13 +92,16 @@ func stop(sigs chan os.Signal, exit chan bool) {
 func do(i int, exit chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 	glog.Infof("start worker %d", i)
+	num := 0
 	for {
 		select {
 		case <-exit:
 			glog.Infof("worker %d exit", i)
 			return
 		default:
+			num++
 			key, item, err := crawlTopic.Pop(*timeout)
+			glog.Infof("%d: err=%+v", num, err)
 			if err != nil {
 				if err.Error() == "Queue is empty" {
 					s := rand.Int()%20 + 5
@@ -67,17 +117,21 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 				glog.Error(err)
 				continue
 			}
-			resp := dl.DownloadUrl(task.Url)
+			resp := dl.DownloadUrlWithProxy(task.Url)
 			if resp.Error != nil {
 				glog.Error(resp.Error)
 				continue
 			}
-			tasks, records, e := Parse(task.ParserName, resp.Text, task.Url)
-			if e != nil {
-				glog.Error(e)
+			tasks, records, err := Parse(task.ParserName, resp.Text, task.Url)
+			if err != nil {
+				glog.Error(err)
 				continue
 			}
 			for _, t := range tasks {
+				if check(t) {
+					continue
+				}
+
 				b, _ := json.Marshal(t)
 				if err = crawlTopic.Push(string(b)); err != nil {
 					glog.Error(err)
@@ -85,6 +139,7 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 			}
 			for _, rec := range records {
 				b, _ := json.Marshal(rec)
+				glog.Info(string(b))
 				if err = storeTopic.Push(string(b)); err != nil {
 					glog.Error(err)
 				}
@@ -100,7 +155,9 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-	initTopics()
+	if err := initTopics(); err != nil {
+		return
+	}
 
 	exit := make(chan bool)
 	sigs := make(chan os.Signal)
@@ -108,7 +165,7 @@ func main() {
 	go stop(sigs, exit)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1; i++ {
 		wg.Add(1)
 		go do(i, exit, &wg)
 	}

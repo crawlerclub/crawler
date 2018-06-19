@@ -1,0 +1,20 @@
+{
+  "name": "section",
+  "example_url": "http://www.newsmth.net/nForum/section/1",
+  "default_fields": true,
+  "rules": {
+    "root": [
+      {
+        "type": "url",
+        "key": "section",
+        "xpath": "//tr[contains(td[2]/text(),'[二级目录]')]/td[1]/a"
+      },
+      {
+        "type": "url",
+        "key": "board",
+        "xpath": "//tr[not(contains(td[2]/text(),'[二级目录]'))]/td[1]/a"
+      }
+    ]
+  },
+  "js": ""
+}
