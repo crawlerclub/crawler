@@ -30,7 +30,7 @@ var (
 )
 
 var crawlTopic, storeTopic *TaskTopic
-var urlStore *store.LevelStore
+var urlStore, dedupStore *store.LevelStore
 var fileStore *filestore.FileStore
 var once sync.Once
 
@@ -46,6 +46,11 @@ func initTopics() (err error) {
 		}
 		dbDir := filepath.Join(*dir, "url")
 		if urlStore, err = store.NewLevelStore(dbDir); err != nil {
+			glog.Error(err)
+			return
+		}
+		dedupDir := filepath.Join(*dir, "dedup")
+		if dedupStore, err = store.NewLevelStore(dedupDir); err != nil {
 			glog.Error(err)
 			return
 		}
@@ -75,7 +80,9 @@ func initSeeds() error {
 		glog.Error(err)
 		return err
 	}
+	tz := time.Now().Format("200601020304")
 	for _, seed := range seeds {
+		seed.TaskName = tz
 		b, _ := json.Marshal(seed)
 		glog.Info(string(b))
 		if err = crawlTopic.Push(string(b)); err != nil {
@@ -161,6 +168,16 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 
 			if t2.After(t) {
 				for _, t := range tasks {
+					if task.TaskName != "" {
+						t.TaskName = task.TaskName
+					}
+					k := taskKey(t)
+					if has, err := dedupStore.Has(k); has {
+						continue
+					} else if err != nil {
+						glog.Error(err)
+					}
+					dedupStore.Put(k, nil)
 					b, _ := json.Marshal(t)
 					if err = crawlTopic.Push(string(b)); err != nil {
 						glog.Error(err)
