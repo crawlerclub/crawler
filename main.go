@@ -23,6 +23,7 @@ var (
 	dir     = flag.String("dir", "data", "working dir")
 	timeout = flag.Int64("timeout", 300, "in seconds")
 	c       = flag.Int("c", 1, "worker count")
+	period  = flag.Int("period", -1, "period in seconds")
 )
 
 var crawlTopic, storeTopic *TaskTopic
@@ -158,6 +159,19 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 	}
 }
 
+func checkSeeds(exit chan bool) {
+	for {
+		select {
+		case <-exit:
+			return
+		default:
+			goutil.Sleep(time.Duration(*period)*time.Second, exit)
+			glog.Info("check seeds period")
+			initSeeds()
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -172,6 +186,9 @@ func main() {
 	go stop(sigs, exit)
 
 	var wg sync.WaitGroup
+	if *period > 0 && *c > 0 {
+		go checkSeeds(exit)
+	}
 	for i := 0; i < *c; i++ {
 		wg.Add(1)
 		go do(i, exit, &wg)
