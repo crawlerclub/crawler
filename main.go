@@ -34,6 +34,24 @@ var urlStore, dedupStore *store.LevelStore
 var fileStore *filestore.FileStore
 var once sync.Once
 
+func finish() {
+	if crawlTopic != nil {
+		crawlTopic.Close()
+	}
+	if storeTopic != nil {
+		storeTopic.Close()
+	}
+	if urlStore != nil {
+		urlStore.Close()
+	}
+	if dedupStore != nil {
+		dedupStore.Close()
+	}
+	if fileStore != nil {
+		fileStore.Close()
+	}
+}
+
 func initTopics() (err error) {
 	once.Do(func() {
 		if crawlTopic, err = NewTaskTopic("crawl", *dir); err != nil {
@@ -99,8 +117,7 @@ func stop(sigs chan os.Signal, exit chan bool) {
 	close(exit)
 }
 
-func do(i int, exit chan bool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func work(i int, exit chan bool) {
 	glog.Infof("start worker %d", i)
 	for {
 		select {
@@ -212,25 +229,28 @@ func checkSeeds(exit chan bool) {
 func main() {
 	flag.Parse()
 	defer glog.Flush()
+	defer glog.Info("exit!")
 
 	if err := initTopics(); err != nil {
 		return
 	}
+	defer finish()
 
 	exit := make(chan bool)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go stop(sigs, exit)
 
-	var wg sync.WaitGroup
 	if *period > 0 && *c > 0 {
 		go checkSeeds(exit)
 	}
 	for i := 0; i < *c; i++ {
-		wg.Add(1)
-		go do(i, exit, &wg)
+		go work(i, exit)
 	}
-	wg.Wait()
 
-	glog.Info("exit!")
+	// wait exit signal
+	select {
+	case <-exit:
+		return
+	}
 }
