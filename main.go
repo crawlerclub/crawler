@@ -17,6 +17,7 @@ import (
 	"crawler.club/et"
 	"github.com/golang/glog"
 	"github.com/liuzl/store"
+	"zliu.org/filestore"
 	"zliu.org/goutil"
 )
 
@@ -25,10 +26,12 @@ var (
 	timeout = flag.Int64("timeout", 300, "in seconds")
 	c       = flag.Int("c", 1, "worker count")
 	period  = flag.Int("period", -1, "period in seconds")
+	fs      = flag.Bool("fs", true, "filestore flag")
 )
 
 var crawlTopic, storeTopic *TaskTopic
 var urlStore *store.LevelStore
+var fileStore *filestore.FileStore
 var once sync.Once
 
 func initTopics() (err error) {
@@ -45,6 +48,13 @@ func initTopics() (err error) {
 		if urlStore, err = store.NewLevelStore(dbDir); err != nil {
 			glog.Error(err)
 			return
+		}
+		if *fs {
+			fsDir := filepath.Join(*dir, "fs")
+			if fileStore, err = filestore.NewFileStore(fsDir); err != nil {
+				glog.Error(err)
+				return
+			}
 		}
 		if err = initSeeds(); err != nil {
 			return
@@ -133,6 +143,9 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 			t2 := time.Now()
 			for _, rec := range records {
 				b, _ := json.Marshal(rec)
+				if *fs {
+					fileStore.WriteLine(b)
+				}
 				glog.Info(string(b))
 				if err = storeTopic.Push(string(b)); err != nil {
 					glog.Error(err)
