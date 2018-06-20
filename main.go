@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -118,7 +119,12 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 				glog.Error(resp.Error)
 				continue
 			}
-			tasks, records, err := Parse(task.ParserName, resp.Text, task.Url)
+			items := strings.Split(resp.RemoteAddr, ":")
+			ip := ""
+			if len(items) > 0 {
+				ip = items[0]
+			}
+			tasks, records, err := Parse(task.ParserName, resp.Text, task.Url, ip)
 			if err != nil {
 				glog.Error(err)
 				continue
@@ -160,6 +166,7 @@ func do(i int, exit chan bool, wg *sync.WaitGroup) {
 }
 
 func checkSeeds(exit chan bool) {
+	defer glog.Info("checkSeeds exit")
 	for {
 		select {
 		case <-exit:

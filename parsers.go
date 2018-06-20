@@ -5,9 +5,11 @@ import (
 	"flag"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"crawler.club/et"
+	"github.com/crawlerclub/ce"
 )
 
 var (
@@ -40,10 +42,27 @@ func (p *Parsers) GetParser(name string, refresh bool) (*et.Parser, error) {
 
 var pool = &Parsers{items: make(map[string]*et.Parser)}
 
-func Parse(name, page, url string) ([]*et.UrlTask, []map[string]interface{}, error) {
-	p, err := pool.GetParser(name, false)
-	if err != nil {
-		return nil, nil, err
+func Parse(name, page, url, ip string) (
+	[]*et.UrlTask, []map[string]interface{}, error) {
+	switch strings.ToLower(name) {
+	case "content_":
+		doc := ce.ParsePro(url, page, ip, false)
+		return nil, []map[string]interface{}{map[string]interface{}{"doc": doc}}, nil
+	case "link_":
+		links, err := et.ParseLinks(page, url)
+		if err != nil {
+			return nil, nil, err
+		}
+		var tasks []*et.UrlTask
+		for _, link := range links {
+			tasks = append(tasks, &et.UrlTask{"content_", link})
+		}
+		return tasks, nil, nil
+	default:
+		p, err := pool.GetParser(name, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		return p.Parse(page, url)
 	}
-	return p.Parse(page, url)
 }
