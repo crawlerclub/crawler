@@ -79,8 +79,10 @@ func initTopics() (err error) {
 				return
 			}
 		}
-		if err = initSeeds(); err != nil {
-			return
+		if goutil.FileGuard("first.lock") {
+			if err = initSeeds(); err != nil {
+				return
+			}
 		}
 	})
 	return
