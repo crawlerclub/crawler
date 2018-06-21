@@ -16,6 +16,18 @@ var (
 	addr = flag.String("addr", ":2001", "rest address")
 )
 
+func StatusHandler(w http.ResponseWriter, r *http.Request) {
+	glog.Infof("addr=%s  method=%s host=%s uri=%s",
+		r.RemoteAddr, r.Method, r.Host, r.RequestURI)
+	ret := map[string]interface{}{
+		"task_queue_length":        crawlTopic.queue.Length(),
+		"task_retry_queue_length":  crawlTopic.retryQueue.Length(),
+		"store_queue_length":       storeTopic.queue.Length(),
+		"store_retry_queue_length": storeTopic.retryQueue.Length(),
+	}
+	rest.MustEncode(w, rest.RestMessage{"OK", ret})
+}
+
 func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("addr=%s  method=%s host=%s uri=%s",
 		r.RemoteAddr, r.Method, r.Host, r.RequestURI)
@@ -54,6 +66,7 @@ func web() {
 		return
 	}
 	http.Handle("/api/addtask", rest.WithLog(AddTaskHandler))
+	http.Handle("/api/status", rest.WithLog(StatusHandler))
 	glog.Info("rest server listen on", *addr)
 	glog.Error(http.ListenAndServe(*addr, nil))
 }
