@@ -27,6 +27,7 @@ var (
 	c       = flag.Int("c", 1, "worker count")
 	period  = flag.Int("period", -1, "period in seconds")
 	fs      = flag.Bool("fs", true, "filestore flag")
+	api     = flag.Bool("api", false, "http api flag")
 )
 
 var crawlTopic, storeTopic *TaskTopic
@@ -248,6 +249,10 @@ func main() {
 	}
 	for i := 0; i < *c; i++ {
 		go work(i, exit)
+	}
+
+	if *api {
+		go web()
 	}
 
 	// wait exit signal
