@@ -49,7 +49,7 @@ func Parse(name, page, url, ip string) (
 		doc := ce.ParsePro(url, page, ip, false)
 		return nil, []map[string]interface{}{map[string]interface{}{"doc": doc}}, nil
 	case "link_":
-		links, err := et.ParseLinks(page, url)
+		links, err := et.ParseNewLinks(page, url)
 		if err != nil {
 			return nil, nil, err
 		}
