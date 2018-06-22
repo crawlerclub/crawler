@@ -28,6 +28,7 @@ var (
 	period  = flag.Int("period", -1, "period in seconds")
 	fs      = flag.Bool("fs", true, "filestore flag")
 	api     = flag.Bool("api", false, "http api flag")
+	proxy   = flag.Bool("proxy", false, "use proxy or not")
 )
 
 var crawlTopic, storeTopic *TaskTopic
@@ -151,7 +152,12 @@ func work(i int, exit chan bool) {
 				t, _ = time.Parse(time.RFC3339, string(bt))
 			}
 
-			resp := dl.DownloadUrlWithProxy(task.Url)
+			var resp *dl.HttpResponse
+			if *proxy {
+				resp = dl.DownloadUrlWithProxy(task.Url)
+			} else {
+				resp = dl.DownloadUrl(task.Url)
+			}
 			if resp.Error != nil {
 				glog.Error(resp.Error)
 				continue
