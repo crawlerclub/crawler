@@ -62,7 +62,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func web() {
 	if crawlTopic == nil || dedupStore == nil {
-		glog.Error("topics did not init")
+		glog.Error("topics did not init, can't start web server")
 		return
 	}
 	http.Handle("/api/addtask", rest.WithLog(AddTaskHandler))
