@@ -102,11 +102,11 @@ func initSeeds() error {
 		glog.Error(err)
 		return err
 	}
+	glog.Infof("initSeeds %d seeds", len(seeds))
 	tz := time.Now().Format("200601020304")
 	for _, seed := range seeds {
 		seed.TaskName = tz
 		b, _ := json.Marshal(seed)
-		glog.Info(string(b))
 		if err = crawlTopic.Push(string(b)); err != nil {
 			glog.Error(err)
 			return err
@@ -179,7 +179,6 @@ func work(i int, exit chan bool) {
 				if *fs {
 					fileStore.WriteLine(b)
 				}
-				glog.Info(string(b))
 				if err = storeTopic.Push(string(b)); err != nil {
 					glog.Error(err)
 				}
