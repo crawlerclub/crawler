@@ -20,10 +20,10 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("addr=%s  method=%s host=%s uri=%s",
 		r.RemoteAddr, r.Method, r.Host, r.RequestURI)
 	ret := map[string]interface{}{
-		"task_queue_length":        crawlTopic.queue.Length(),
-		"task_retry_queue_length":  crawlTopic.retryQueue.Length(),
-		"store_queue_length":       storeTopic.queue.Length(),
-		"store_retry_queue_length": storeTopic.retryQueue.Length(),
+		"task_queue_length":        crawlQueue.queue.Length(),
+		"task_retry_queue_length":  crawlQueue.retryQueue.Length(),
+		"store_queue_length":       storeQueue.queue.Length(),
+		"store_retry_queue_length": storeQueue.retryQueue.Length(),
 	}
 	rest.MustEncode(w, rest.RestMessage{"OK", ret})
 }
@@ -53,7 +53,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	dedupStore.Put(k, nil)
 	b, _ = json.Marshal(task)
-	if err = crawlTopic.Push(string(b)); err != nil {
+	if err = crawlQueue.Push(string(b)); err != nil {
 		rest.MustEncode(w, rest.RestMessage{"ERROR", err.Error()})
 		return
 	}
@@ -61,7 +61,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func web() {
-	if crawlTopic == nil || dedupStore == nil {
+	if crawlQueue == nil || dedupStore == nil {
 		glog.Error("topics did not init, can't start web server")
 		return
 	}

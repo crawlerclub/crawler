@@ -14,7 +14,7 @@ import (
 
 var debug = false
 
-type TaskTopic struct {
+type Queue struct {
 	Name string `json:"name"`
 	Dir  string `json:dir`
 
@@ -24,8 +24,8 @@ type TaskTopic struct {
 	exit         chan bool
 }
 
-func NewTaskTopic(name, dir string) (*TaskTopic, error) {
-	t := &TaskTopic{Name: name, Dir: dir, exit: make(chan bool)}
+func NewQueue(name, dir string) (*Queue, error) {
+	t := &Queue{Name: name, Dir: dir, exit: make(chan bool)}
 	var err error
 	queueDir := filepath.Join(dir, name, "queue")
 	if t.queue, err = ds.OpenQueue(queueDir); err != nil {
@@ -45,9 +45,7 @@ func NewTaskTopic(name, dir string) (*TaskTopic, error) {
 	return t, nil
 }
 
-func (t *TaskTopic) Type() string { return "TASK" }
-
-func (t *TaskTopic) Push(data string) error {
+func (t *Queue) Push(data string) error {
 	if debug {
 		fmt.Println("push:", data, t.queue.Length(), t.retryQueue.Length())
 	}
@@ -58,7 +56,7 @@ func (t *TaskTopic) Push(data string) error {
 	return fmt.Errorf("queue is nil")
 }
 
-func (t *TaskTopic) pop(q *ds.Queue, timeout int64) (string, string, error) {
+func (t *Queue) pop(q *ds.Queue, timeout int64) (string, string, error) {
 	item, err := q.Dequeue()
 	if err != nil {
 		return "", "", err
@@ -74,7 +72,7 @@ func (t *TaskTopic) pop(q *ds.Queue, timeout int64) (string, string, error) {
 	return key, string(item.Value), nil
 }
 
-func (t *TaskTopic) Pop(timeout int64) (string, string, error) {
+func (t *Queue) Pop(timeout int64) (string, string, error) {
 	if t.retryQueue != nil && t.retryQueue.Length() > 0 {
 		return t.pop(t.retryQueue, timeout)
 	}
@@ -84,7 +82,7 @@ func (t *TaskTopic) Pop(timeout int64) (string, string, error) {
 	return "", "", fmt.Errorf("Queue is empty")
 }
 
-func (t *TaskTopic) Confirm(key string) error {
+func (t *Queue) Confirm(key string) error {
 	if debug {
 		fmt.Println("confirm", key, t.queue.Length(), t.retryQueue.Length())
 	}
@@ -94,7 +92,7 @@ func (t *TaskTopic) Confirm(key string) error {
 	return t.runningStore.Delete(key)
 }
 
-func (t *TaskTopic) Close() {
+func (t *Queue) Close() {
 	if t.exit != nil {
 		t.exit <- true
 	}
@@ -109,13 +107,13 @@ func (t *TaskTopic) Close() {
 	}
 }
 
-func (t *TaskTopic) Drop() {
+func (t *Queue) Drop() {
 	t.Close()
 	path := filepath.Join(t.Dir, t.Name)
 	os.RemoveAll(path)
 }
 
-func (t *TaskTopic) addToRunning(key string, value []byte) error {
+func (t *Queue) addToRunning(key string, value []byte) error {
 	if debug {
 		fmt.Println("addToRunning", key, t.queue.Length(), t.retryQueue.Length())
 	}
@@ -128,7 +126,7 @@ func (t *TaskTopic) addToRunning(key string, value []byte) error {
 	return t.runningStore.Put(key, value)
 }
 
-func (t *TaskTopic) retry() {
+func (t *Queue) retry() {
 	for {
 		select {
 		case <-t.exit:

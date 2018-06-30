@@ -31,17 +31,17 @@ var (
 	proxy   = flag.Bool("proxy", false, "use proxy or not")
 )
 
-var crawlTopic, storeTopic *TaskTopic
+var crawlQueue, storeQueue *Queue
 var urlStore, dedupStore *store.LevelStore
 var fileStore *filestore.FileStore
 var once sync.Once
 
 func finish() {
-	if crawlTopic != nil {
-		crawlTopic.Close()
+	if crawlQueue != nil {
+		crawlQueue.Close()
 	}
-	if storeTopic != nil {
-		storeTopic.Close()
+	if storeQueue != nil {
+		storeQueue.Close()
 	}
 	if urlStore != nil {
 		urlStore.Close()
@@ -56,11 +56,11 @@ func finish() {
 
 func initTopics() (err error) {
 	once.Do(func() {
-		if crawlTopic, err = NewTaskTopic("crawl", *dir); err != nil {
+		if crawlQueue, err = NewQueue("crawl", *dir); err != nil {
 			glog.Error(err)
 			return
 		}
-		if storeTopic, err = NewTaskTopic("store", *dir); err != nil {
+		if storeQueue, err = NewQueue("store", *dir); err != nil {
 			glog.Error(err)
 			return
 		}
@@ -107,7 +107,7 @@ func initSeeds() error {
 	for _, seed := range seeds {
 		seed.TaskName = tz
 		b, _ := json.Marshal(seed)
-		if err = crawlTopic.Push(string(b)); err != nil {
+		if err = crawlQueue.Push(string(b)); err != nil {
 			glog.Error(err)
 			return err
 		}
@@ -129,7 +129,7 @@ func work(i int, exit chan bool) {
 			glog.Infof("worker %d exit", i)
 			return
 		default:
-			key, item, err := crawlTopic.Pop(*timeout)
+			key, item, err := crawlQueue.Pop(*timeout)
 			if err != nil {
 				if err.Error() == "Queue is empty" {
 					s := rand.Int()%20 + 5
@@ -179,7 +179,7 @@ func work(i int, exit chan bool) {
 				if *fs {
 					fileStore.WriteLine(b)
 				}
-				if err = storeTopic.Push(string(b)); err != nil {
+				if err = storeQueue.Push(string(b)); err != nil {
 					glog.Error(err)
 				}
 
@@ -204,14 +204,14 @@ func work(i int, exit chan bool) {
 					}
 					dedupStore.Put(k, nil)
 					b, _ := json.Marshal(t)
-					if err = crawlTopic.Push(string(b)); err != nil {
+					if err = crawlQueue.Push(string(b)); err != nil {
 						glog.Error(err)
 					}
 				}
 			}
 
 			if len(tasks) > 0 || len(records) > 0 {
-				if err = crawlTopic.Confirm(key); err != nil {
+				if err = crawlQueue.Confirm(key); err != nil {
 					glog.Error(err)
 				}
 				urlStore.Put(task.Url, []byte(t2.UTC().Format(time.RFC3339)))
