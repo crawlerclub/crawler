@@ -107,7 +107,7 @@ func initSeeds() error {
 	for _, seed := range seeds {
 		seed.TaskName = tz
 		b, _ := json.Marshal(seed)
-		if err = crawlQueue.Push(string(b)); err != nil {
+		if err = crawlQueue.Enqueue(string(b)); err != nil {
 			glog.Error(err)
 			return err
 		}
@@ -129,7 +129,7 @@ func work(i int, exit chan bool) {
 			glog.Infof("worker %d exit", i)
 			return
 		default:
-			key, item, err := crawlQueue.Pop(*timeout)
+			key, item, err := crawlQueue.Dequeue(*timeout)
 			if err != nil {
 				if err.Error() == "Queue is empty" {
 					s := rand.Int()%20 + 5
@@ -179,7 +179,7 @@ func work(i int, exit chan bool) {
 				if *fs {
 					fileStore.WriteLine(b)
 				}
-				if err = storeQueue.Push(string(b)); err != nil {
+				if err = storeQueue.Enqueue(string(b)); err != nil {
 					glog.Error(err)
 				}
 
@@ -204,7 +204,7 @@ func work(i int, exit chan bool) {
 					}
 					dedupStore.Put(k, nil)
 					b, _ := json.Marshal(t)
-					if err = crawlQueue.Push(string(b)); err != nil {
+					if err = crawlQueue.Enqueue(string(b)); err != nil {
 						glog.Error(err)
 					}
 				}

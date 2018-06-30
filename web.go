@@ -53,7 +53,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	dedupStore.Put(k, nil)
 	b, _ = json.Marshal(task)
-	if err = crawlQueue.Push(string(b)); err != nil {
+	if err = crawlQueue.Enqueue(string(b)); err != nil {
 		rest.MustEncode(w, rest.RestMessage{"ERROR", err.Error()})
 		return
 	}

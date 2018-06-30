@@ -45,9 +45,9 @@ func NewQueue(name, dir string) (*Queue, error) {
 	return t, nil
 }
 
-func (t *Queue) Push(data string) error {
+func (t *Queue) Enqueue(data string) error {
 	if debug {
-		fmt.Println("push:", data, t.queue.Length(), t.retryQueue.Length())
+		fmt.Println("Enqueue:", data, t.queue.Length(), t.retryQueue.Length())
 	}
 	if t.queue != nil {
 		_, err := t.queue.EnqueueString(data)
@@ -56,7 +56,7 @@ func (t *Queue) Push(data string) error {
 	return fmt.Errorf("queue is nil")
 }
 
-func (t *Queue) pop(q *ds.Queue, timeout int64) (string, string, error) {
+func (t *Queue) dequeue(q *ds.Queue, timeout int64) (string, string, error) {
 	item, err := q.Dequeue()
 	if err != nil {
 		return "", "", err
@@ -72,12 +72,12 @@ func (t *Queue) pop(q *ds.Queue, timeout int64) (string, string, error) {
 	return key, string(item.Value), nil
 }
 
-func (t *Queue) Pop(timeout int64) (string, string, error) {
+func (t *Queue) Dequeue(timeout int64) (string, string, error) {
 	if t.retryQueue != nil && t.retryQueue.Length() > 0 {
-		return t.pop(t.retryQueue, timeout)
+		return t.dequeue(t.retryQueue, timeout)
 	}
 	if t.queue != nil && t.queue.Length() > 0 {
-		return t.pop(t.queue, timeout)
+		return t.dequeue(t.queue, timeout)
 	}
 	return "", "", fmt.Errorf("Queue is empty")
 }
