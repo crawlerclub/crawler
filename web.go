@@ -20,10 +20,8 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("addr=%s  method=%s host=%s uri=%s",
 		r.RemoteAddr, r.Method, r.Host, r.RequestURI)
 	ret := map[string]interface{}{
-		"task_queue_length":        crawlQueue.queue.Length(),
-		"task_retry_queue_length":  crawlQueue.retryQueue.Length(),
-		"store_queue_length":       storeQueue.queue.Length(),
-		"store_retry_queue_length": storeQueue.retryQueue.Length(),
+		"crawl": crawlQueue.Status(),
+		"store": storeQueue.Status(),
 	}
 	rest.MustEncode(w, rest.RestMessage{"OK", ret})
 }

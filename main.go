@@ -19,6 +19,7 @@ import (
 	"github.com/liuzl/store"
 	"zliu.org/filestore"
 	"zliu.org/goutil"
+	"zliu.org/q"
 )
 
 var (
@@ -31,7 +32,7 @@ var (
 	proxy   = flag.Bool("proxy", false, "use proxy or not")
 )
 
-var crawlQueue, storeQueue *Queue
+var crawlQueue, storeQueue *q.Queue
 var urlStore, dedupStore *store.LevelStore
 var fileStore *filestore.FileStore
 var once sync.Once
@@ -56,11 +57,13 @@ func finish() {
 
 func initTopics() (err error) {
 	once.Do(func() {
-		if crawlQueue, err = NewQueue("crawl", *dir); err != nil {
+		crawlDir := filepath.Join(*dir, "crawl")
+		if crawlQueue, err = q.NewQueue(crawlDir); err != nil {
 			glog.Error(err)
 			return
 		}
-		if storeQueue, err = NewQueue("store", *dir); err != nil {
+		storeDir := filepath.Join(*dir, "store")
+		if storeQueue, err = q.NewQueue(storeDir); err != nil {
 			glog.Error(err)
 			return
 		}
