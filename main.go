@@ -3,16 +3,19 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"crawler.club/crawler/version"
 	"crawler.club/dl"
 	"crawler.club/et"
 	"github.com/golang/glog"
@@ -243,6 +246,11 @@ func checkSeeds(exit chan bool) {
 func main() {
 	flag.Parse()
 	defer glog.Flush()
+
+	fmt.Printf("Git SHA: %s\n", version.GitSHA)
+	fmt.Printf("Go Version: %s\n", runtime.Version())
+	fmt.Printf("Go OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+
 	defer glog.Info("exit!")
 
 	if err := initTopics(); err != nil {
