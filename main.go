@@ -156,7 +156,7 @@ func work(i int, exit chan bool) {
 				t, _ = time.Parse(time.RFC3339, string(bt))
 			}
 
-			var req = new(dl.HttpRequest)
+			var req = &dl.HttpRequest{Url: task.Url}
 			if *ua == "pc" || *ua == "mobile" || *ua == "google" {
 				req.Platform = *ua
 			}
