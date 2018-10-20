@@ -30,6 +30,7 @@ var (
 	fs      = flag.Bool("fs", true, "filestore flag")
 	api     = flag.Bool("api", false, "http api flag")
 	proxy   = flag.Bool("proxy", false, "use proxy or not")
+	ua      = flag.String("ua", "", "pc, mobile, google. Golang UA for empty")
 )
 
 var crawlQueue, storeQueue *q.Queue
@@ -155,12 +156,14 @@ func work(i int, exit chan bool) {
 				t, _ = time.Parse(time.RFC3339, string(bt))
 			}
 
-			var resp *dl.HttpResponse
-			if *proxy {
-				resp = dl.DownloadUrlWithProxy(task.Url)
-			} else {
-				resp = dl.DownloadUrl(task.Url)
+			var req = new(dl.HttpRequest)
+			if *ua == "pc" || *ua == "mobile" || *ua == "google" {
+				req.Platform = *ua
 			}
+			if *proxy {
+				req.UseProxy = true
+			}
+			resp := dl.Download(req)
 			if resp.Error != nil {
 				glog.Error(resp.Error)
 				continue
