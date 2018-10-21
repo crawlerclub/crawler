@@ -8,4 +8,4 @@ The quick way:
 ```sh
 go get crawler.club/crawler
 ```
-Or download the single binary here.
+Or download the pre-built binaries from [releases](https://github.com/crawlerclub/crawler/releases).
