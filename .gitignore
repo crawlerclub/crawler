@@ -16,3 +16,4 @@ data
 first.lock
 tld.cache
 zerolog
+.DS_Store
