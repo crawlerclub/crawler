@@ -9,11 +9,11 @@ GO_GET=$(GO_CMD) get
 
 BUILD_DIR="build"
 
-all: linux macos windows
+all: linux darwin windows
 
 linux:
 	GOOS=linux $(GO_BUILD) $(GO_LDFLAGS) -o "$(BUILD_DIR)/linux/crawler" "${REPO_PATH}"
-macos:
+darwin:
 	GOOS=darwin $(GO_BUILD) $(GO_LDFLAGS) -o "$(BUILD_DIR)/darwin/crawler" "${REPO_PATH}"
 windows:
 	GOOS=windows $(GO_BUILD) $(GO_LDFLAGS) -o "$(BUILD_DIR)/windows/crawler.exe" "${REPO_PATH}"
