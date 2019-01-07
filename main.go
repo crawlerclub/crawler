@@ -176,7 +176,7 @@ func work(i int, exit chan bool) {
 			if len(items) > 0 {
 				ip = items[0]
 			}
-			tasks, records, err := Parse(task.ParserName, resp.Text, task.Url, ip)
+			tasks, records, err := Parse(task, resp.Text, ip)
 			if err != nil {
 				glog.Error(err)
 				continue
