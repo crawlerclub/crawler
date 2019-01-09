@@ -29,6 +29,7 @@ var (
 	dir     = flag.String("dir", "data", "working dir")
 	timeout = flag.Int64("timeout", 300, "in seconds")
 	c       = flag.Int("c", 1, "worker count")
+	retry   = flag.Int("retry", 5, "retry cnt")
 	period  = flag.Int("period", -1, "period in seconds")
 	fs      = flag.Bool("fs", true, "filestore flag")
 	api     = flag.Bool("api", false, "http api flag")
@@ -62,7 +63,7 @@ func finish() {
 func initTopics() (err error) {
 	once.Do(func() {
 		crawlDir := filepath.Join(*dir, "crawl")
-		if crawlQueue, err = q.NewQueue(crawlDir); err != nil {
+		if crawlQueue, err = q.NewQueueWithRetryLimit(crawlDir, *retry); err != nil {
 			glog.Error(err)
 			return
 		}
