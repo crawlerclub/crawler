@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"crawler.club/crawler/rss"
 	"crawler.club/et"
 	"github.com/crawlerclub/ce"
 )
@@ -47,6 +48,9 @@ func Parse(task *et.UrlTask, page, ip string) (
 	name := task.ParserName
 	url := task.Url
 	switch strings.ToLower(name) {
+	case "rss_":
+		feeds, err := rss.Parse(url, page, task.Ext)
+		return nil, feeds, err
 	case "content_":
 		doc := ce.ParsePro(url, page, ip, false)
 		return nil, []map[string]interface{}{map[string]interface{}{"doc": doc, "ext": task.Ext}}, nil
