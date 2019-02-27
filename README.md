@@ -20,9 +20,10 @@ make
 ```
 
 ## Usage
-TODO
+[中文](usage_cn.md)
 
 ## Companies using crawler.club/crawler
 * [Huawei](https://www.huawei.com/)
 * [Baidu](https://www.baidu.com)
 * [Toutiao](https://www.toutiao.com/)
+* [Zenia](https://www.zenia.ai/)
