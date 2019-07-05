@@ -17,3 +17,7 @@ first.lock
 tld.cache
 zerolog
 .DS_Store
+
+.etlinks/
+
+crawler
