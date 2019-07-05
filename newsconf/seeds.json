@@ -1,0 +1,23 @@
+[
+ {
+    "parser_name": "link_",
+    "url": "https://tech.sina.com.cn/",
+    "ext": {
+      "category": "Tech"
+    }
+  },
+ {
+    "parser_name": "link_",
+    "url": "https://new.qq.com/ch/tech/",
+    "ext": {
+      "category": "Tech"
+    }
+  },
+  {
+    "parser_name": "link_",
+    "url": "https://it.sohu.com/",
+    "ext": {
+      "category": "Tech"
+    }
+  }
+]
