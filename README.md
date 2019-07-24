@@ -23,7 +23,8 @@ make
 [中文](usage_cn.md)
 
 ## Companies using crawler.club/crawler
-* [Huawei](https://www.huawei.com/)
-* [Baidu](https://www.baidu.com)
-* [Toutiao](https://www.toutiao.com/)
-* [Zenia](https://www.zenia.ai/)
+* [elensdata](https://www.elensdata.com/)
+* [huawei](https://www.huawei.com/)
+* [baidu](https://www.baidu.com)
+* [bytedance](https://www.bytedance.com/)
+* [zenia](https://www.zenia.ai/)
