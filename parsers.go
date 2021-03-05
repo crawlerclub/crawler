@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"crawler.club/ce"
 	"crawler.club/crawler/rss"
 	"crawler.club/et"
-	"github.com/crawlerclub/ce"
 )
 
 var (
