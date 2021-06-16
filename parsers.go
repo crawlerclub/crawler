@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"crawler.club/ce"
 	"crawler.club/crawler/rss"
@@ -53,7 +54,7 @@ func Parse(task *et.UrlTask, page, ip string) (
 		return nil, feeds, err
 	case "content_":
 		doc := ce.ParsePro(url, page, ip, false)
-		return nil, []map[string]interface{}{map[string]interface{}{"doc": doc, "ext": task.Ext}}, nil
+		return nil, []map[string]interface{}{map[string]interface{}{"doc": doc, "t": time.Now(), "ext": task.Ext}}, nil
 	case "link_":
 		links, err := et.ParseNewLinks(page, url)
 		if err != nil {
